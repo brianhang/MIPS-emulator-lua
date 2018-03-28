@@ -8,87 +8,122 @@ local function addu(cpu, rs, rt, rd, shamt)
     cpu.reg[rd] = (cpu.reg[rs] + cpu.reg[rt]) & 0xffffffff
 end
 
-local function addi(cpu, rt, rs, imm)
+local function addi(cpu, rs, rt, imm)
     cpu.reg[rt] = cpu.reg[rs] + imm
 end
 
-local function addiu(cpu, rt, rs, imm)
+local function addiu(cpu, rs, rt, imm)
     cpu.reg[rt] = (cpu.reg[rs] + imm) & 0xffffffff
 end
 
-local function _and(cpu, rt, rs, rd, shamt)
+local function _and(cpu, rs, rt, rd, shamt)
+    cpu.reg[rd] = cpu.reg[rs] & cpu.reg[rt]
 end
 
-local function andi(cpu, rt, rs, imm)
+local function andi(cpu, rs, rt, imm)
+    cpu.reg[rt] = cpu.reg[rs] & imm
 end
 
-local function beq(cpu, rt, rs, imm)
+local function beq(cpu, rs, rt, imm)
+    if cpu.reg[rs] == cpu.reg[rt] then
+        cpu:advance_pc((imm << 2) - 4)
+    end
 end
 
-local function bne(cpu, rt, rs, imm)
+local function bne(cpu, rs, rt, imm)
+    if cpu.reg[rs] >= 0 then
+        cpu:advance_pc((imm << 2) - 4)
+    end
 end
 
 local function j(cpu, target)
+    cpu.pc = cpu.npc
+    cpu.npc = (cpu.pc & 0xf0000000) | (target << 2)
 end
 
 local function jal(cpu, target)
+    -- $31 = $ra = return address
+    cpu.reg[31] = cpu.pc + 8
+    cpu.pc = cpu.npc
+    cpu.npc = (cpu.pc & 0xf0000000) | (target << 2)
 end
 
 local function jr(cpu, target)
+    cpu.pc = cpu.npc
+    cpu.npc = target
 end
 
-local function lbu(cpu, rt, rs, imm)
+local function lbu(cpu, rs, rt, imm)
+    cpu.reg[rt] = cpu:mem_read(cpu.reg[rs] + imm, 1)
 end
 
-local function lhu(cpu, rt, rs, imm)
+local function lhu(cpu, rs, rt, imm)
+    cpu.reg[rt] = cpu:mem_read(cpu.reg[rs] + imm, 2)
 end
 
-local function ll(cpu, rt, rs, imm)
+local function ll(cpu, rs, rt, imm)
+    cpu.reg[rt] = cpu:mem_read(cpu.reg[rs] + imm, 1)
 end
 
-local function lui(cpu, rt, rs, imm)
+local function lui(cpu, rs, rt, imm)
+    cpu.reg[rt] = imm << 16
 end
 
-local function lw(cpu, rt, rs, imm)
+local function lw(cpu, rs, rt, imm)
+    cpu.reg[rt] = cpu:mem_read(cpu.reg[rs] + imm, 4)
 end
 
-local function nor(cpu, rt, rs, rd, shamt)
+local function nor(cpu, rs, rt, rd, shamt)
+    cpu.reg[rd] = ~(cpu.reg[rs] | cpu.reg[rt])
 end
 
-local function _or(cpu, rt, rs, rd, shamt)
+local function _or(cpu, rs, rt, rd, shamt)
+    cpu.reg[rd] = cpu.reg[rs] | cpu.reg[rt]
 end
 
-local function ori(cpu, rt, rs, imm)
+local function ori(cpu, rs, rt, imm)
+    cpu.reg[rd] = cpu.reg[rs] | imm
 end
 
-local function slt(cpu, rt, rs, rd, shamt)
+local function slt(cpu, rs, rt, rd, shamt)
+    cpu.reg[rd] = (cpu.reg[rs] < cpu.reg[rt]) and 1 or 0
 end
 
-local function slti(cpu, rt, rs, imm)
+local function slti(cpu, rs, rt, imm)
+    cpu.reg[rt] = (cpu.reg[rs] < imm) and 1 or 0
 end
 
-local function sltu(cpu, rt, rs, rd, shamt)
+local function sltu(cpu, rs, rt, rd, shamt)
+    cpu.reg[rd] = (cpu.reg[rs] < cpu.reg[rt]) and 1 or 0
 end
 
-local function sltui(cpu, rt, rs, rd, shamt)
+local function sltiu(cpu, rs, rt, imm)
+    cpu.reg[rt] = (cpu.reg[rs] < imm) and 1 or 0
 end
 
-local function sll(cpu, rt, rs, rd, shamt)
+local function sll(cpu, rs, rt, rd, shamt)
+    cpu.reg[rd] = cpu.reg[rt] << shamt
 end
 
-local function srl(cpu, rt, rs, rd, shamt)
+local function srl(cpu, rs, rt, rd, shamt)
+    cpu.reg[rd] = cpu.reg[rt] >> shamt
 end
 
-local function sb(cpu, rt, rs, imm)
+local function sb(cpu, rs, rt, imm)
+    cpu:mem_write(cpu.reg[rs] + imm, cpu.reg[rt] & 0xff, 1)
 end
 
-local function sc(cpu, rt, rs, imm)
+local function sc(cpu, rs, rt, imm)
+    cpu:mem_write(cpu.reg[rs] + imm, cpu.reg[rt], 1)
+    cpu.reg[rt] = 1
 end
 
-local function sh(cpu, rt, rs, imm)
+local function sh(cpu, rs, rt, imm)
+    cpu:mem_write(cpu.reg[rs] + imm, cpu.reg[rt] & 0xffff, 2)
 end
 
-local function sw(cpu, rt, rs, imm)
+local function sw(cpu, rs, rt, imm)
+    cpu:mem_write(cpu.reg[rs] + imm, cpu.reg[rt] & 0xffffffff, 4)
 end
 
 local function sub(cpu, rs, rt, rd, shamt)

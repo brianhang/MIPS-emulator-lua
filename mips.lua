@@ -1,6 +1,6 @@
 local instructions = require("instructions")
 
-MIPS = {}
+local MIPS = {}
 MIPS.__index = MIPS
 
 local REGISTER_COUNT = 32
@@ -36,8 +36,13 @@ local function extract_bits(value, right, left)
 end
 
 function MIPS:decode(instr)
-    local opcode = extract_bits(instr, 31, 26)
     local decoded = {}
+
+    if instr == 0 then
+        return decoded
+    end
+
+    local opcode = extract_bits(instr, 31, 26)
 
     if opcode == 0 then
         -- Decode R format.
@@ -60,6 +65,12 @@ function MIPS:decode(instr)
 end
 
 function MIPS:execute(decoded)
+    -- Handle nop.
+    if #decoded == 0 then
+        self:advance_pc(4)
+        return
+    end
+
     local instr
 
     if decoded.addr then
@@ -79,10 +90,10 @@ function MIPS:execute(decoded)
         instr(self, decoded.rs, decoded.rt, decoded.imm)
     end
 
-    self:advancePC(4)
+    self:advance_pc(4)
 end
 
-function MIPS:advancePC(offset)
+function MIPS:advance_pc(offset)
     self.pc = self.npc
     self.npc = self.npc + offset
 end
